@@ -1,0 +1,47 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head><title>COMP 5704: Parallel Algorithms and Applications in Data Science [Andrew J. Pregent]</title>
+<style>
+body { margin: 30px auto; width:800px; }
+</style>
+</head>
+<body>
+Project Title: Parallel Cover Trees and their Application in SPH Fluid Simulation<br/>
+Name: Andrew J. Pregent <br/>
+E-Mail: AndrewPregent@cmail.carleton.ca <br/>
+
+<h2>Project Outline:</h2>
+<p>I would like to implement a parallel cover tree data structure as described by Yan Gu et al [1]. Then I would like to compare its efficiency to that of
+the more typical spatial hash for finding neighbors within a constant threshold distance in smoothed particle hydrodynamics
+simulations. This search is required both for computing the density field at each particle, and for computing the forces
+between particles. A detailed description of SPH can be found in <a href="https://ajp.pages.dev/posts/sph/">the following post</a> on my blog, however relevant to this project is that finding
+an efficient searching algorithm is critical to the performance of an SPH simulation.</p>
+<p>There are two benefits to using a cover tree over a spatial hash. The first is that a spatial hash requires a fixed spatial domain
+with which to index points efficiently, whereas the cover tree has no such limitation. A cover tree could therefore be used
+in applications where an unbounded spatial domain is desirable. Second, the spatial hash often relies on an assumption about
+the support length of the smoothing kernel. This allows particles farther on the grid to be discarded safely. Since a cover tree supports
+an approximate search within a distance threshold, it offers an efficient method to support adaptive kernel sizes.</p>
+<p>These benefits come with an added complexity cost however. The worst case for both insertion and queries is constant for a spatial
+hash, compared with O(logn) for cover trees. Cover trees do have an advantage in memory cost, which is not insignificant for
+a spatial hash and is also required to be contiguous. Therefore, in cases where memory becomes the limiting factor in performance the
+cover tree has potential to outperform.</p>
+<p>I will be interested to see how these factors affect the overall performance between the two methods. For this I plan
+to use begin with a variety of standard test cases such as the dam-break test. In addition to this I will test sparse
+scenarios which have large domains. In each test I will use an adaptive and fixed size smoothing kernel.</p>
+
+<h2>Startup Paper(s):</h2>
+[1] Yan Gu, Zachary Napier, Yihan Sun, and Letong Wang. 2022. Parallel Cover Trees and their Applications. In Proceedings of the 34th ACM Symposium on Parallelism in Algorithms and Architectures (SPAA '22). Association for Computing Machinery, New York, NY, USA, 259–272. <a href="https://dl.acm.org/doi/pdf/10.1145/3490148.3538581">https://doi.org/10.1145/3490148.3538581</a>
+
+<h2>Deliverables:</h2>
+<ul>
+<li><a href="Literature_Review.pdf">Literature Review</a> (PDF file created from LATEX template)</li>
+<li><a href="Presentation_Outline.pdf">Presentation Outline</a> (PDF file created from LATEX template)</li>
+<li><a href="Slide_Presentation.ppt">Slide Presentation</a> (PowerPoint File) incl. Question Sheet</li>
+<li><a href="Final_Paper.pdf">Final Paper</a> (PDF file created from LATEX template)</li>
+<li><a href="Code_and_Data">Code and Data</a>(put all code, data, etc. into this directory)</li>
+</ul>
+
+<h2>Relevant References:</h2>
+[2] R. A. Gingold, J. J. Monaghan, Smoothed particle hydrodynamics: theory and application to non-spherical stars, Monthly Notices of the Royal Astronomical Society, Volume 181, Issue 3, December 1977, Pages 375–389, <a href="https://doi.org/10.1093/mnras/181.3.375">https://doi.org/10.1093/mnras/181.3.375</a>
+</body>
+</html>
