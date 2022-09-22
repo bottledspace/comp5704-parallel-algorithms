@@ -1,16 +1,19 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html>
-<head><title>COMP 5704: Parallel Algorithms and Applications in Data Science [Andrew J. Pregent]</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Parallel Cover Trees and their Application in SPH Fluid Simulation</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
 <style>
-body { margin: 30px auto; width:800px; }
+ol.refs { list-style: none; padding-left: 0; }
+ol.refs>li:before { content: "[" attr(value) "] "; }
 </style>
 </head>
 <body>
-Project Title: Parallel Cover Trees and their Application in SPH Fluid Simulation<br/>
-Name: Andrew J. Pregent <br/>
-E-Mail: AndrewPregent@cmail.carleton.ca <br/>
-
-<h2>Project Outline:</h2>
+<main class="container col-md-7 text-body">
+<h1 class="mt-5">Parallel Cover Trees and their use in Smoothed Particle Hydrodynamics</h1>
+<p class="lead mb-4">Andrew Pregent</p>
+<h3 class="mt-5 mb-3">Project Outline</h3>
 <p>I would like to implement a parallel cover tree data structure as described by Yan Gu et al [1]. Then I would like to compare its efficiency to that of
 the more typical spatial hash for finding neighbors within a constant threshold distance in smoothed particle hydrodynamics
 simulations. This search is required both for computing the density field at each particle, and for computing the forces
@@ -28,23 +31,17 @@ cover tree has potential to outperform.</p>
 <p>I will be interested to see how these factors affect the overall performance between the two methods. For this I plan
 to use begin with a variety of standard test cases such as the dam-break test. In addition to this I will test sparse
 scenarios which have large domains. In each test I will use an adaptive and fixed size smoothing kernel.</p>
-
-<h2>Startup Paper(s):</h2>
-[1] [1]Yan Gu, Zachary Napier, Yihan Sun, and Letong Wang. 2022. Parallel Cover Trees and Their Applications. In Proceedings of the 34th ACM Symposium on Parallelism in Algorithms and Architectures (SPAA ’22), Association for Computing Machinery, Philadelphia, PA, USA, 259–272. DOI:<a href="https://doi.org/10.1145/3490148.3538581">https://doi.org/10.1145/3490148.3538581</a>
-
-<h2>Deliverables:</h2>
-<ul>
-<li><a href="Literature_Review.pdf">Literature Review</a> (PDF file created from LATEX template)</li>
-<li><a href="Presentation_Outline.pdf">Presentation Outline</a> (PDF file created from LATEX template)</li>
-<li><a href="Slide_Presentation.ppt">Slide Presentation</a> (PowerPoint File) incl. Question Sheet</li>
-<li><a href="Final_Paper.pdf">Final Paper</a> (PDF file created from LATEX template)</li>
-<li><a href="Code_and_Data">Code and Data</a>(put all code, data, etc. into this directory)</li>
-</ul>
-
-<h2>Relevant References:</h2>
-[2] R. A. Gingold and J. J. Monaghan. 1977. Smoothed particle hydrodynamics: theory and application to non-spherical stars. Monthly Notices of the Royal Astronomical Society 181, 3 (December 1977), 375–389. DOI:<a href="https://doi.org/10.1093/mnras/181.3.375">https://doi.org/10.1093/mnras/181.3.375</a>
-[3] Matthias Müller, David Charypar, and Markus Gross. 2003. Particle-Based Fluid Simulation for Interactive Applications. In Proceedings of the 2003 ACM SIGGRAPH/Eurographics Symposium on Computer Animation (SCA ’03), Eurographics Association, San Diego, California, 154–159. DOI:<a href="https://dl.acm.org/doi/10.5555/846276.846298">https://dl.acm.org/doi/10.5555/846276.846298</a>
-[4] Bart Adams and Martin Wicke. 2009. Meshless Approximation Methods and Applications in Physics Based Modeling and Animation. In Eurographics 2009 - Tutorials, The Eurographics Association. DOI:<a href="https://doi.org/10.2312/egt.20091070">https://doi.org/10.2312/egt.20091070</a>
-
+<h3 class="mt-3 mb-3">Startup Paper</h3>
+<ol class="refs">
+<li value="1">Yan Gu, Zachary Napier, Yihan Sun, and Letong Wang. 2022. Parallel Cover Trees and Their Applications. In Proceedings of the 34th ACM Symposium on Parallelism in Algorithms and Architectures (SPAA ’22), Association for Computing Machinery, Philadelphia, PA, USA, 259–272. DOI:<a href="https://doi.org/10.1145/3490148.3538581">https://doi.org/10.1145/3490148.3538581</a></li>
+</ol>
+<h3 class="mt-3 mb-3">Relevant References</h3>
+<ol class="refs">
+<li value="2"> R. A. Gingold and J. J. Monaghan. 1977. Smoothed particle hydrodynamics: theory and application to non-spherical stars. Monthly Notices of the Royal Astronomical Society 181, 3 (December 1977), 375–389. DOI:<a href="https://doi.org/10.1093/mnras/181.3.375">https://doi.org/10.1093/mnras/181.3.375</a></li>
+<li value="3"> Matthias Müller, David Charypar, and Markus Gross. 2003. Particle-Based Fluid Simulation for Interactive Applications. In Proceedings of the 2003 ACM SIGGRAPH/Eurographics Symposium on Computer Animation (SCA ’03), Eurographics Association, San Diego, California, 154–159. DOI:<a href="https://dl.acm.org/doi/10.5555/846276.846298">https://dl.acm.org/doi/10.5555/846276.846298</a></li>
+<li value="4"> Bart Adams and Martin Wicke. 2009. Meshless Approximation Methods and Applications in Physics Based Modeling and Animation. In Eurographics 2009 - Tutorials, The Eurographics Association. DOI:<a href="https://doi.org/10.2312/egt.20091070">https://doi.org/10.2312/egt.20091070</a></li>
+</ol>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-u1OknCvxWvY5kfmNBILK2hRnQC3Pr17a+RTT6rIHI7NnikvbZlHgTPOOmMi466C8" crossorigin="anonymous"></script>
 </body>
 </html>
