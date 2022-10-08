@@ -13,6 +13,8 @@ ol.refs>li:before { content: "[" attr(value) "] "; }
 <main class="container col-md-7 text-body">
 <h1 class="mt-5">Parallel Cover Trees and their use in Smoothed Particle Hydrodynamics</h1>
 <p class="lead mb-4">Andrew Pregent</p>
+<p><a href="/litreview.pdf">Literary Review (WIP!)</a></p>
+<p><strong>The following outline needs to be rewritten for new topic (asynchronous SPH on the GPU)!</strong></p>
 <h3 class="mt-5 mb-3">Project Outline</h3>
 <p>I would like to implement a parallel cover tree data structure as described by Yan Gu et al [1]. Then I would like to compare its efficiency to that of
 the more typical spatial hash for finding neighbors within a constant threshold distance in smoothed particle hydrodynamics
@@ -31,7 +33,6 @@ cover tree has potential to outperform.</p>
 <p>I will be interested to see how these factors affect the overall performance between the two methods. For this I plan
 to use begin with a variety of standard test cases such as the dam-break test. In addition to this I will test sparse
 scenarios which have large domains. In each test I will use an adaptive and fixed size smoothing kernel.</p>
-<p><a href="/litreview.pdf">Literary Review (WIP!)</a></p>
 <h3 class="mt-3 mb-3">Startup Paper</h3>
 <ol class="refs">
 <li value="1">Yan Gu, Zachary Napier, Yihan Sun, and Letong Wang. 2022. Parallel Cover Trees and Their Applications. In Proceedings of the 34th ACM Symposium on Parallelism in Algorithms and Architectures (SPAA ’22), Association for Computing Machinery, Philadelphia, PA, USA, 259–272. DOI:<a href="https://doi.org/10.1145/3490148.3538581">https://doi.org/10.1145/3490148.3538581</a></li>
