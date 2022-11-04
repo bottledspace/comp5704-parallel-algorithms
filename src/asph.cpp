@@ -170,7 +170,7 @@ float step(void)
     return particle.time;
 }
 
-void backtrackAll(std::vector<Particle>& result, float time)
+void backtrackAll(std::vector<glm::vec3>& result, float time)
 {
     result.clear();
     for (int i = 0; i < particles.size(); i++) {
@@ -178,9 +178,7 @@ void backtrackAll(std::vector<Particle>& result, float time)
         if (particles[i].time != lastParticles[i].time)
             t = (time - lastParticles[i].time)
                 / (particles[i].time - lastParticles[i].time);
-
-        auto backtrack = mix(lastParticles[i], particles[i], t);
-        result.push_back(backtrack);
+        result.push_back(mix(lastParticles[i].position, particles[i].position, t));
     }
 }
 
@@ -202,22 +200,28 @@ void packSphere(const glm::vec3& center, float radius) {
 }
 
 
-int main()
+int main(int argc, char **argv)
 {
-    ParticleRenderer<Particle> renderer(512,512);
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <numFrames>" << std::endl;
+        return EXIT_FAILURE;
+    }
+    const int numFrames = std::stoi(argv[1]);
+
+    ParticleRenderer renderer(512,512);
     packSphere({5.0f,5.0f,5.0f}, 0.25f);
 
     float time = 0.0f;
-    std::vector<Particle> frame;
+    std::vector<glm::vec3> frame;
     VideoStream stream("test.mp4");
-    while (!renderer.shouldClose()) {
+    for (int k = 0; k < numFrames; k++) {
         time += 1.0f/30.0f;
         while (step() < time)
             ;
+        std::cerr << ".";
         backtrackAll(frame, time);
         renderer.render(frame);
-        stream.writeFrame();
+        stream.writeFrame(renderer.frontBuffer());
     }
-    
-    return 0;
+    return EXIT_SUCCESS;
 }
