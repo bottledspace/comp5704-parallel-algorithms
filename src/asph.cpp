@@ -1,5 +1,4 @@
 #include "ParticleRenderer.hpp"
-#include "VideoStream.hpp"
 #include <iostream>
 #include <cmath>
 #include <algorithm>
@@ -110,7 +109,7 @@ float step(void)
     }
 
     // Compute F* (Fvisc + Fext)
-    constexpr float nu = 0.015f;
+    constexpr float nu = 0.05f;
     particle.accel = glm::vec3(0.0f, -9.81f, 0.0f);
     for (const Particle& neighbor : neighbors) {
         auto vij = particle.velocity - neighbor.velocity;
@@ -135,7 +134,7 @@ float step(void)
     }
 
     // Compute pressure and pressure forces
-    constexpr float k = 1.0f;
+    constexpr float k = 0.1f;
     auto accelP = glm::vec3{0.0f,0.0f,0.0f};
     particle.pressure = k*std::max(particle.density - Particle::rho0, 0.0f);
     for (const Particle& neighbor : neighbors) {
@@ -153,14 +152,15 @@ float step(void)
     particle.position += dt*particle.velocity + sq(dt)/2.0f*particle.accel;
     particle.time += dt;
 
-    float a = 5-0.3, b = 5+0.3;
+    glm::vec3 r = glm::vec3(0.3f,0.5f,0.3f);
+    glm::vec3 a = 5.0f-r, b = 5.0f+r;
     for (int d = 0; d < 3; d++) {
-        if (particle.position[d] < a) {
-            particle.position[d] = a+std::min(b-a, a-particle.position[d]);
+        if (particle.position[d] < a[d]) {
+            particle.position[d] = a[d]+std::min(b[d]-a[d], a[d]-particle.position[d]);
             particle.velocity[d] = 0.0f;
         }
-        if (particle.position[d] > b) {
-            particle.position[d] = b-std::min(b-a, particle.position[d]-b);
+        if (particle.position[d] > b[d]) {
+            particle.position[d] = b[d]-std::min(b[d]-a[d], particle.position[d]-b[d]);
             particle.velocity[d] = 0.0f;
         }
     }
@@ -202,26 +202,30 @@ void packSphere(const glm::vec3& center, float radius) {
 
 int main(int argc, char **argv)
 {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <numFrames>" << std::endl;
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <numFrames> <outPath>" << std::endl;
         return EXIT_FAILURE;
     }
     const int numFrames = std::stoi(argv[1]);
+    const std::string filePrefix = argv[2];
 
     ParticleRenderer renderer(512,512);
-    packSphere({5.0f,5.0f,5.0f}, 0.25f);
+    packSphere({5.0f,5.25f,5.0f}, 0.25f);
 
     float time = 0.0f;
     std::vector<glm::vec3> frame;
-    VideoStream stream("test.mp4");
     for (int k = 0; k < numFrames; k++) {
-        time += 1.0f/30.0f;
+        time += 1.0f/60.0f;
         while (step() < time)
             ;
         std::cerr << ".";
         backtrackAll(frame, time);
         renderer.render(frame);
-        stream.writeFrame(renderer.frontBuffer());
+
+        stbi_flip_vertically_on_write(1);
+        stbi_write_png((filePrefix+std::to_string(k)+".png").c_str(),
+            renderer.width(), renderer.height(),
+            3, renderer.frontBuffer().data(), 0);
     }
     return EXIT_SUCCESS;
 }
