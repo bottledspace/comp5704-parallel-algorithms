@@ -203,29 +203,39 @@ void packSphere(const glm::vec3& center, float radius) {
 int main(int argc, char **argv)
 {
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <numFrames> <outPath>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <duration> <path>" << std::endl;
         return EXIT_FAILURE;
     }
-    const int numFrames = std::stoi(argv[1]);
-    const std::string filePrefix = argv[2];
+    const int duration = std::stof(argv[1]);
+    const std::string path = argv[2];
 
     ParticleRenderer renderer(512,512);
     packSphere({5.0f,5.0f,5.0f}, 0.25f);
 
     float time = 0.0f;
-    std::vector<glm::vec3> frame;
-    for (int k = 0; k < numFrames; k++) {
+    int frameCount = 0;
+    std::string filename = path+"XXXX.png";
+    std::vector<glm::vec3> positions;
+    while (time <= duration) {
         time += 1.0f/60.0f;
         while (step() < time)
             ;
-        std::cerr << ".";
-        backtrackAll(frame, time);
-        renderer.render(frame);
+        backtrackAll(positions, time);
+        renderer.render(positions);
+
+        int rem = frameCount;
+        for (auto p = filename.rbegin()+4; p != filename.rbegin()+8; ++p) {
+            *p = '0' + (rem % 10);
+            rem /= 10;
+        }
+        std::cerr << "writing " << filename << " at " << time << "s" << std::endl;
 
         stbi_flip_vertically_on_write(1);
-        stbi_write_png((filePrefix+std::to_string(k)+".png").c_str(),
-            renderer.width(), renderer.height(),
+        stbi_write_png(filename.c_str(), renderer.width(), renderer.height(),
             3, renderer.frontBuffer().data(), 0);
+        
+        frameCount++;
     }
+    std::cerr << frameCount << " frames total." << std::endl;
     return EXIT_SUCCESS;
 }
