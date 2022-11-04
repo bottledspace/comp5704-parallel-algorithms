@@ -3,7 +3,7 @@ NUM_FRAMES := 10
 CFLAGS = -O3
 LIBS = -lGLU -lOSMesa -lm -lavutil -lavformat \
     -lavcodec -lswscale -lavutil -lswresample
-asph : asph.cpp
+asph : asph.cpp ParticleRenderer.hpp
 	g++ -o asph $(CFLAGS) asph.cpp $(LIBS)
 frames :
 	mkdir frames/

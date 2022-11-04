@@ -25,9 +25,14 @@ public:
 		glLoadMatrixf(value_ptr(proj));
 		glMatrixMode(GL_MODELVIEW);
 
+		glEnable(GL_POINT_SMOOTH);
+		glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 		glClear(GL_COLOR_BUFFER_BIT);
         const glm::mat4 mv =
-			  glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f,-5.0f,-7.0f))
+			  glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f,-6.0f,-7.0f))
 			* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f,1.0f,1.0f))
 			* glm::rotate(glm::mat4(1.0f), -12.5f, glm::vec3(1.0f,0.0f,0.0f));
         glLoadMatrixf(value_ptr(mv));
@@ -39,11 +44,11 @@ public:
 		glEnd();
     	glFinish();
     }
-	const std::vector<uint8_t>& frontBuffer() const { return m_frontbuf; }
-	int width() const { return m_width; }
-	int height() const { return m_height; }
+    const std::vector<uint8_t>& frontBuffer() const { return m_frontbuf; }
+    int width() const { return m_width; }
+    int height() const { return m_height; }
 private:
-	int m_width, m_height;
-	std::vector<uint8_t> m_frontbuf;
-	OSMesaContext m_context;
+    int m_width, m_height;
+    std::vector<uint8_t> m_frontbuf;
+    OSMesaContext m_context;
 };
