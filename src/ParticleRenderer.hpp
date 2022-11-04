@@ -32,9 +32,9 @@ public:
 
 		glClear(GL_COLOR_BUFFER_BIT);
         const glm::mat4 mv =
-			  glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f,-6.0f,-7.0f))
+			  glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f,-1.5f,-9.0f))
 			* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f,1.0f,1.0f))
-			* glm::rotate(glm::mat4(1.0f), -12.5f, glm::vec3(1.0f,0.0f,0.0f));
+			* glm::rotate(glm::mat4(1.0f), 0.5f, glm::vec3(1.0f,0.0f,0.0f));
         glLoadMatrixf(value_ptr(mv));
 		glPointSize(5);
 		glColor3f(1.0f,1.0f,1.0f);
@@ -42,6 +42,14 @@ public:
 		for (auto& particle : particles)
 			glVertex3fv(value_ptr(particle));
 		glEnd();
+        glBegin(GL_LINE_LOOP);
+        glm::vec3 r = glm::vec3(0.5f,1.0f,0.5f);
+        glm::vec3 a = 5.0f-r, b = 5.0f+r;
+        glVertex3f(a.x,a.y,a.z);
+        glVertex3f(a.x,a.y,b.z);
+        glVertex3f(b.x,a.y,b.z);
+        glVertex3f(b.x,a.y,a.z);
+        glEnd();
     	glFinish();
     }
     const std::vector<uint8_t>& frontBuffer() const { return m_frontbuf; }

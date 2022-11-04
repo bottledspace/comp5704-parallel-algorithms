@@ -152,7 +152,7 @@ float step(void)
     particle.position += dt*particle.velocity + sq(dt)/2.0f*particle.accel;
     particle.time += dt;
 
-    glm::vec3 r = glm::vec3(0.3f,2.0f,0.3f);
+    glm::vec3 r = glm::vec3(0.5f,1.0f,0.5f);
     glm::vec3 a = 5.0f-r, b = 5.0f+r;
     for (int d = 0; d < 3; d++) {
         if (particle.position[d] < a[d]) {
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
     const std::string filePrefix = argv[2];
 
     ParticleRenderer renderer(512,512);
-    packSphere({5.0f,6.75f,5.0f}, 0.25f);
+    packSphere({5.0f,5.0f,5.0f}, 0.25f);
 
     float time = 0.0f;
     std::vector<glm::vec3> frame;
