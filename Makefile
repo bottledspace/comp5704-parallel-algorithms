@@ -1,8 +1,7 @@
 .PHONY : run
 DURATION := 1
 CFLAGS = -O3 -fopenmp
-LIBS = -lOSMesa -lm -lavutil -lavformat \
-    -lavcodec -lswscale -lavutil -lswresample
+LIBS = -lOSMesa
 
 bin :
 	mkdir bin

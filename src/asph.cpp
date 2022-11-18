@@ -67,6 +67,7 @@ Particle backtrace(const Particle& particle, float t)
 }
 
 std::vector<Particle> particles;
+std::vector<Particle> nextParticles;
 Grid3<int> cells(200,200,200,-1);
 std::vector<int> temporalList;
 
@@ -86,6 +87,7 @@ void updateCells(void) {
     std::fill(cells.begin(), cells.end(), -1);
     for (int i = 0; i < particles.size(); i++) {
         glm::ivec3 index = particles[i].position / Particle::radius;
+        index = glm::min(glm::max(index, glm::ivec3(0,0,0)), glm::ivec3(200,200,200)-1);
         particles[i].nextParticle = cells(index);
         cells(index) = i;
     }
@@ -95,9 +97,12 @@ void forNeighbors(const Particle& particle, std::function<void(const Particle &)
     glm::ivec3 center = particle.position / Particle::radius;
     for (int dk = -1; dk <= 1; dk++)
     for (int dj = -1; dj <= 1; dj++)
-    for (int di = -1; di <= 1; di++)
-        for (int i = cells(center+glm::ivec3(di,dj,dk)); i != -1; i = particles[i].nextParticle)
+    for (int di = -1; di <= 1; di++) {
+        glm::ivec3 index = center+glm::ivec3(di,dj,dk);
+        index = glm::min(glm::max(index, glm::ivec3(0,0,0)), glm::ivec3(200,200,200)-1);
+        for (int i = cells(index); i != -1; i = particles[i].nextParticle)
             fn(particles[i]);
+    }
 }
 
 void step(int k)
@@ -208,7 +213,7 @@ void step(int k)
             particle.velocity[d] *= -0.2f;
         }
     }
-    particles[k] = particle;
+    nextParticles[k] = particle;
 }
 
 void backtrackAll(std::vector<glm::vec3>& result, float time)
@@ -251,6 +256,7 @@ int main(int argc, char **argv)
 
     ParticleRenderer renderer(512,512);
     packSphere({5.0f,5.0f,5.0f}, 0.25f);
+    nextParticles.resize(particles.size());
 
     float time = 0.0f;
     int frameCount = 0;
@@ -265,8 +271,14 @@ int main(int argc, char **argv)
                 updateCells();
                 #pragma omp parallel for
                 for (int i = 0; i < particles.size(); i++)
+                    nextParticles[i] = particles[i];
+                #pragma omp parallel for
+                for (int i = 0; i < particles.size(); i++)
                     step(i);
-                
+                #pragma omp parallel for
+                for (int i = 0; i < particles.size(); i++)
+                    particles[i] = nextParticles[i];
+
                 minTime = particles.front().time;
                 for (int i = 1; i < particles.size(); i++)
                     if (minTime > particles[i].time)
