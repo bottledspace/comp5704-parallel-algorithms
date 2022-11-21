@@ -15,37 +15,40 @@
 template <int N> constexpr float pow(float x) { return x*pow<N-1>(x); }
 template <> constexpr float pow<1>(float x) { return x; }
 constexpr float sq(float x) { return x*x; }
-constexpr float min(float x, float y) { return (x < y) ? x : y; }
+
 struct Particle {
+    float time;
+    float deltaTime;
     int nextParticle;
     glm::vec3 position;
     glm::vec3 lastPosition;
     glm::vec3 velocity;
     glm::vec3 lastVelocity;
     glm::vec3 accel;
-    float time;
     float density;
     float lastDensity;
     float pressure;
     float lastPressure;
 
 
-
+    __host__ __device__
     Particle(const Particle& copy) = default;
-
+    __host__ __device__
     Particle(glm::vec3 position)
-        : nextParticle(-1)
+        : time(0.0f)
+        , deltaTime(0.0f)
+        , nextParticle(-1)
         , position(position)
         , lastPosition(position)
         , velocity(0.0f,0.0f,0.0f)
         , lastVelocity(velocity)
         , accel(0.0f,0.0f,0.0f)
-        , time(0.0f)
         , density(rho0)
         , lastDensity(rho0)
         , pressure(0)
         , lastPressure(0)
         {}
+    __host__ __device__
     Particle()
         : Particle(glm::vec3(0.0f,0.0f,0.0f))
         {}
@@ -57,6 +60,7 @@ struct Particle {
     static constexpr int gamma = 7;
 };
 
+__host__ __device__
 Particle backtrace(const Particle& particle, float t)
 {
     Particle res(particle);
@@ -67,72 +71,86 @@ Particle backtrace(const Particle& particle, float t)
     return res;
 }
 
+__host__ __device__
 float W(glm::vec3 disp) {
     float r = length(disp);
-    if (r > Particle::radius)
-        return 0.0f;
     float x = 1.0f - r / Particle::radius;
     return 315.0f / (64.0f * M_PI * pow<3>(Particle::radius)) * pow<3>(x);
 }
 
+__host__ __device__
 glm::vec3 dW(glm::vec3 disp) {
     float r = length(disp);
-    if (r > Particle::radius)
-        return glm::vec3(0.0f,0.0f,0.0f);
     if (r > 0.0f) disp /= r;
     float x = 1.0f - r / Particle::radius;
     return disp * float(-45.0f / (M_PI * pow<4>(Particle::radius)) * sq(x));
 }
 
-struct Cell {
-    int firstParticle;
-    float time;
-    float deltaTime;
-    int updateCounter;
-
-    Cell()
-        : firstParticle(-1)
-        , time(0.0f)
-        , deltaTime(std::numeric_limits<float>::max()) {}
-};
-
-std::vector<Particle> particles;
-std::vector<Cell> cells(200*200*200);
-
-void updateCells() {
-    for (int i = 0; i < cells.size(); i++) {
-        cells[i].firstParticle = -1;
-        cells[i].deltaTime = 0.01f;//std::numeric_limits<float>::max();
-        cells[i].time = std::numeric_limits<float>::max();
-        cells[i].updateCounter = 0;
-    }
-
+void updateCells(std::vector<int>& cells, std::vector<Particle>& particles) {
+    std::fill(cells.begin(),cells.end(),-1);
     for (int i = 0; i < particles.size(); i++) {
         glm::ivec3 index = particles[i].position / Particle::radius;
         index = glm::min(glm::max(index, glm::ivec3(0,0,0)), glm::ivec3(200,200,200)-1);
         int k = index.z*200*200+index.y*200+index.x;
-        particles[i].nextParticle = cells[k].firstParticle;
-        cells[k].firstParticle = i;
-
-        float dt = min(
-            0.02f*sqrt(Particle::radius/(0.001f+length(particles[i].accel))),
-            0.05f*Particle::radius/(0.001f+length(particles[i].velocity))
-        );
-        cells[k].deltaTime = std::min(dt, cells[k].deltaTime);
-
-        cells[k].time = std::min(particles[i].time, cells[k].time);
+        particles[i].nextParticle = cells[k];
+        cells[k] = i;
     }
 }
 
-void stepParticle(Particle& particle, std::vector<Particle>& neighbors, float dt) {
+__global__
+void step(Particle* particles, Particle* particlesNext, int* cells) {
+    int k = blockIdx.x;
+
+    // Reconstruct neighbor attributes
+    Particle neighbors[128];
+    int numNeighbors = 0;
+
+    Particle& particle = neighbors[numNeighbors++] = particles[k];
     particle.lastPosition = particle.position;
     particle.lastVelocity = particle.velocity;
     particle.lastDensity = particle.density;
     particle.lastPressure = particle.pressure;
-    
+
+    // Determine possible time step dt
+    float dt = min(
+        0.02f*sqrt(Particle::radius/(0.001f+length(particles[k].accel))),
+        0.05f*Particle::radius/(0.001f+length(particles[k].velocity))
+    );
+    particle.deltaTime = dt;
+
+    glm::ivec3 center = particles[k].position / Particle::radius;
+    for (int dk = -1; dk <= 1; dk++)
+    for (int dj = -1; dj <= 1; dj++)
+    for (int di = -1; di <= 1; di++) {
+        glm::ivec3 index = center+glm::ivec3(di,dj,dk);
+        for (int i = cells[index.z*200*200+index.y*200+index.x];
+                i != -1;
+                i = particles[i].nextParticle) {
+            Particle& neighbor = particles[i];
+            if (k == i)
+                continue;
+            if (neighbor.time < particle.time)
+                return;
+
+            float t = 0.0f;
+            if (neighbor.deltaTime != 0)
+                t = (neighbors[0].time - neighbor.time + neighbor.deltaTime)
+                    / (neighbor.deltaTime);
+
+            auto backtrack = backtrace(neighbor, t);
+            if (distance2(backtrack.position, neighbors[0].position) < sq(Particle::radius)) {
+                if (numNeighbors == 128) {
+                    printf("error!\n");
+                    return;
+                }
+                neighbors[numNeighbors++] = backtrack;
+            }
+        }
+    }    
+
     // Compute density
     particle.density = 0.0f;
-    for (int i = 0; i < neighbors.size(); i++) {
+    for (int i = 0; i < numNeighbors; i++) {
         auto xij = particle.position - neighbors[i].position;
         particle.density += Particle::mass*W(xij);
     }
@@ -140,7 +158,7 @@ void stepParticle(Particle& particle, std::vector<Particle>& neighbors, float dt
     // Compute F* (Fvisc + Fext)
     constexpr float nu = 0.015f;
     particle.accel = glm::vec3(0.0f, -9.81f, 0.0f);
-    for (int i = 0; i < neighbors.size(); i++) {
+    for (int i = 0; i < numNeighbors; i++) {
         auto vij = particle.velocity - neighbors[i].velocity;
         auto xij = particle.position - neighbors[i].position;
         if (length2(xij) > 0.0) {
@@ -155,7 +173,7 @@ void stepParticle(Particle& particle, std::vector<Particle>& neighbors, float dt
     
     // Compute new density
     particle.density = 0.0f;
-    for (int i = 0; i < neighbors.size(); i++) {
+    for (int i = 0; i < numNeighbors; i++) {
         auto xij = particle.position - neighbors[i].position;
         auto vij = particle.velocity - neighbors[i].velocity;
         particle.density += Particle::mass*W(xij);
@@ -166,7 +184,7 @@ void stepParticle(Particle& particle, std::vector<Particle>& neighbors, float dt
     constexpr float kappa = 0.5f;
     auto accelP = glm::vec3{0.0f,0.0f,0.0f};
     particle.pressure = kappa*std::max(particle.density - Particle::rho0, 0.0f);
-    for (int i = 0; i < neighbors.size(); i++) {
+    for (int i = 0; i < numNeighbors; i++) {
         auto xij = particle.position - neighbors[i].position;
         if (length2(xij) > 0.0) {
             accelP -= dW(xij) * Particle::mass
@@ -179,6 +197,7 @@ void stepParticle(Particle& particle, std::vector<Particle>& neighbors, float dt
     // Integrate particle over time using dt
     particle.velocity += dt*accelP;
     particle.position += dt*particle.velocity + sq(dt)/2.0f*particle.accel;
+    particle.time += dt;
 
     glm::vec3 r = glm::vec3(0.4f,0.3f,0.4f);
     glm::vec3 a = 5.0f-r, b = 5.0f+r;
@@ -192,81 +211,23 @@ void stepParticle(Particle& particle, std::vector<Particle>& neighbors, float dt
             particle.velocity[d] *= -0.2f;
         }
     }
-    particle.time += dt;
+
+    particlesNext[k] = particle;
 }
 
-void stepCell(glm::ivec3 center) {
-    Cell& centerCell = cells[center.x+center.y*200+center.z*200*200];
-
-    constexpr static glm::ivec3 deltas[] = {
-        glm::ivec3(-1,-1,-1),
-        glm::ivec3(-1,-1, 0),
-        glm::ivec3(-1,-1,+1),
-        glm::ivec3(-1, 0,-1),
-        glm::ivec3(-1, 0, 0),
-        glm::ivec3(-1, 0,+1),
-        glm::ivec3(-1,+1,-1),
-        glm::ivec3(-1,+1, 0),
-        glm::ivec3(-1,+1,+1),
-        glm::ivec3( 0,-1,-1),
-        glm::ivec3( 0,-1, 0),
-        glm::ivec3( 0,-1,+1),
-        glm::ivec3( 0, 0,-1),
-        glm::ivec3( 0, 0,+1),
-        glm::ivec3( 0,+1,-1),
-        glm::ivec3( 0,+1, 0),
-        glm::ivec3( 0,+1,+1),
-        glm::ivec3(+1,-1,-1),
-        glm::ivec3(+1,-1, 0),
-        glm::ivec3(+1,-1,+1),
-        glm::ivec3(+1, 0,-1),
-        glm::ivec3(+1, 0, 0),
-        glm::ivec3(+1, 0,+1),
-        glm::ivec3(+1,+1,-1),
-        glm::ivec3(+1,+1, 0),
-        glm::ivec3(+1,+1,+1),
-    };
-
-    std::vector<Particle> neighbors;
-    for (int i = centerCell.firstParticle; i != -1; i = particles[i].nextParticle)
-        neighbors.push_back(particles[i]);
-
-    for (glm::ivec3 delta : deltas) {
-        const glm::ivec3 index = center+delta;
-        const Cell& cell = cells[index.z*200*200+index.y*200+index.x];
-        for (int i = cell.firstParticle; i != -1; i = particles[i].nextParticle) {
-            float t = (centerCell.time - cell.time + cell.deltaTime) / cell.deltaTime;
-            neighbors.push_back(backtrace(particles[i], t));
-        }
-    }
-    for (Particle& neighbor : neighbors)
-        stepParticle(neighbor, neighbors, centerCell.deltaTime);
-    
-    for (int k = 0, i = centerCell.firstParticle; i != -1; i = particles[i].nextParticle, k++)
-        particles[i] = neighbors[k];
-    centerCell.time += centerCell.deltaTime;
-    centerCell.updateCounter++;
-}
-
-void backtrackAll(std::vector<glm::vec3>& result, float time)
+void backtrackAll(std::vector<glm::vec3>& result, std::vector<Particle>& particles, float time)
 {
     result.clear();
     for (int i = 0; i < particles.size(); i++) {
-        glm::ivec3 index = particles[i].position / Particle::radius;
-        if (index.x < 0)    index.x = 0;
-        if (index.x >= 200) index.x = 199;
-        if (index.y < 0)    index.y = 0;
-        if (index.y >= 200) index.y = 199;
-        if (index.z < 0)    index.z = 0;
-        if (index.z >= 200) index.z = 199;
-        int k = index.x+index.y*200+index.z*200*200;
-        float t = (time - cells[k].time + cells[k].deltaTime) / (cells[k].deltaTime);
+        float t = 0.0f;
+        if (particles[i].deltaTime != 0)
+            t = (time - particles[i].time + particles[i].deltaTime)
+                / (particles[i].deltaTime);
         result.push_back(mix(particles[i].lastPosition, particles[i].position, t));
-        //result.push_back(particles[i].position);
     }
 }
 
-void packSphere(const glm::vec3& center, float radius) {
+void packSphere(std::vector<Particle>& particles, const glm::vec3& center, float radius) {
     int r = (2.0f*radius) / Particle::radius;
     for (int z = -r; z <= r; z++)
     for (int y = -r; y <= r; y++)
@@ -281,7 +242,6 @@ void packSphere(const glm::vec3& center, float radius) {
     }
 }
 
-#define INDEX(v) ((v).x+(v).y*200+(v).z*200*200)
 
 int main(int argc, char **argv)
 {
@@ -293,7 +253,20 @@ int main(int argc, char **argv)
     const std::string path = argv[2];
 
     ParticleRenderer renderer(512,512);
-    packSphere({5.0f,5.0f,5.0f}, 0.25f);
+    std::vector<Particle> particles;
+    packSphere(particles, {5.0f,5.0f,5.0f}, 0.25f);
+    std::vector<int> cells(200*200*200);
+
+    int numParticles = particles.size();
+    Particle *particles_dev;
+    Particle *particlesNext_dev;
+    int *cells_dev;
+    cudaMalloc(&particles_dev, numParticles*sizeof(Particle));
+    cudaMalloc(&particlesNext_dev, numParticles*sizeof(Particle));
+    cudaMalloc(&cells_dev, 200*200*200*sizeof(int));
+    cudaMemcpy(particles_dev, particles.data(), numParticles*sizeof(Particle), cudaMemcpyHostToDevice);
+    cudaMemcpy(particlesNext_dev, particles_dev, numParticles*sizeof(Particle), cudaMemcpyDeviceToDevice);
+    cudaDeviceSynchronize();
 
     float time = 0.0f;
     int frameCount = 0;
@@ -301,36 +274,43 @@ int main(int argc, char **argv)
     std::vector<glm::vec3> positions;
     while (time <= duration) {
         time += 1.0f/60.0f;
-        
-        ScopedTimer timer(std::to_string(frameCount));
-        updateCells();
+        float minTime;
+        {
+            ScopedTimer timer(std::to_string(frameCount));
+            updateCells(cells, particles);
+            cudaMemcpy(particles_dev, particles.data(), numParticles*sizeof(Particle), cudaMemcpyHostToDevice);
+            cudaMemcpy(cells_dev, cells.data(), 200*200*200*sizeof(int), cudaMemcpyHostToDevice);
+            cudaDeviceSynchronize();
+            cudaMemcpyAsync(particlesNext_dev, particles_dev, numParticles*sizeof(Particle), cudaMemcpyDeviceToDevice);
+            
+            float totalMilliseconds = 0.0f;
+            do {
+                cudaEvent_t start, stop;
+                cudaEventCreate(&start);
+                cudaEventCreate(&stop);
 
-        for (;;) {
+                cudaEventRecord(start);
+                step<<<numParticles,1>>>(particles_dev, particlesNext_dev, cells_dev);
+                cudaMemcpy(particles.data(), particlesNext_dev, numParticles*sizeof(Particle), cudaMemcpyDeviceToHost);
+                cudaEventRecord(stop);
+                cudaDeviceSynchronize();
+                float milliseconds = 0;
+                cudaEventElapsedTime(&milliseconds, start, stop);
+                totalMilliseconds += milliseconds;
 
-            glm::ivec3 smallestIndex(0,0,0);
-            for (int x = 91; x < 110; x++)
-            for (int y = 93; y < 108; y++)
-            for (int z = 91; z < 110; z++) {
-                glm::ivec3 index(x,y,z);
-                if (cells[INDEX(index)].firstParticle == -1)
-                    continue;
-                if (cells[INDEX(smallestIndex)].time > cells[INDEX(index)].time)
-                    smallestIndex = index;
-            }
-            if (cells[INDEX(smallestIndex)].time >= time)
-                break;
-            //std::cout << cells[INDEX(smallestIndex)].time << " ";
-            //std::flush(std::cout);
-            stepCell(smallestIndex);
+                minTime = particles.front().time;
+                for (int i = 1; i < numParticles; i++) {
+                    glm::ivec3 index = particles[i].position/Particle::radius;
+                    if (minTime > particles[i].time) {
+                        minTime = particles[i].time;
+                    }
+                }
+                cudaMemcpyAsync(particles_dev, particlesNext_dev, numParticles*sizeof(Particle), cudaMemcpyDeviceToDevice);
+            } while (minTime < time);
+
+            std::cout << "kernel time total " << totalMilliseconds << std::endl;
         }
-    
-        for (int x = 91; x < 110; x++)
-        for (int y = 93; y < 108; y++)
-        for (int z = 91; z < 110; z++) 
-            std::cout << cells[INDEX(glm::ivec3(x,y,z))].updateCounter << " ";
-        std::cout << std::endl;
-
-        backtrackAll(positions, time);
+        backtrackAll(positions, particles, time);
         renderer.render(positions);
 
         int rem = frameCount;
