@@ -1,12 +1,13 @@
 .PHONY : run
 DURATION := 1
-CFLAGS = -O3 -fopenmp
-LIBS = -lOSMesa
+CXX := g++
+CXXFLAGS := -O3 -fopenmp --std=c++17
+LIBS := -lOSMesa
 
 bin :
 	mkdir bin
 bin/asph : src/asph.cpp src/ParticleRenderer.hpp | bin
-	g++ -o bin/asph $(CFLAGS) src/asph.cpp $(LIBS)
+	$(CXX) -o bin/asph $(CXXFLAGS) src/asph.cpp $(LIBS)
 out :
 	mkdir out
 run : bin/asph | out
