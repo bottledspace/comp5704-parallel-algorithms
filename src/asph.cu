@@ -6,6 +6,7 @@
 #include <string>
 #include <algorithm>
 #include <functional>
+#include <fstream>
 #include <thrust/reduce.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
@@ -363,6 +364,16 @@ void update(Cell* cells, Cell* nextCells, Particle* particles, Particle* nextPar
     }
 }*/
 
+void writeFrame(const std::vector<glm::vec3>& positions, const std::string& filename) {
+    std::ofstream os(filename);
+    for (int i = 0; i < positions.size(); i++) {
+        os << "v " << positions[i].x << " "
+                   << positions[i].y << " "
+                   << positions[i].z << std::endl;
+    }
+    os.close();
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 3) {
@@ -390,7 +401,7 @@ int main(int argc, char **argv)
 
     float time = 0.0f;
     int frameCount = 0;
-    std::string filename = path+"XXXX.png";
+    std::string filename = path+"XXXX.obj";
     std::vector<glm::vec3> positions;
     while (time <= duration) {
         time += 1.0f/60.0f;
@@ -438,10 +449,11 @@ int main(int argc, char **argv)
         }
         //std::cerr << "writing " << filename << " at " << time << "s" << std::endl;
 
-        stbi_flip_vertically_on_write(1);
+        /*stbi_flip_vertically_on_write(1);
         stbi_write_png(filename.c_str(), renderer.width(), renderer.height(),
-            3, renderer.frontBuffer().data(), 0);
-        
+            3, renderer.frontBuffer().data(), 0);*/
+        if (frameCount > 0)
+            writeFrame(positions, filename);
         frameCount++;
     }
     //std::cerr << frameCount << " frames total." << std::endl;

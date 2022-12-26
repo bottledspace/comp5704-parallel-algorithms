@@ -8,6 +8,12 @@ bin :
 	mkdir bin
 bin/asph : src/asph.cpp src/ParticleRenderer.hpp | bin
 	$(CXX) -o bin/asph $(CXXFLAGS) src/asph.cpp $(LIBS)
+bin/raymarcher : src/RayMarcher.cc src/SDF.hpp src/Field.hpp | bin
+	$(CXX) $(CXXFLAGS) src/RayMarcher.cc $(LDFLAGS) -o bin/raymarcher
+bin/rasterizer : src/Rasterizer.cc src/SDF.hpp src/Field.hpp | bin
+	$(CXX) $(CXXFLAGS) src/RayMarcher.cc $(LDFLAGS) -o bin/raymarcher
+bin/raymarcher : src/RayMarcher.cc src/SDF.hpp src/Field.hpp | bin
+	$(CXX) $(CXXFLAGS) src/RayMarcher.cc $(LDFLAGS) -o bin/raymarcher
 out :
 	mkdir out
 run : bin/asph | out
